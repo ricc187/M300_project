@@ -35,19 +35,6 @@ services:
     environment:
       NODE_ENV: development
 
-  nginx-proxy:
-    image: nginx:alpine
-    networks:
-      - proxy-network
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://192.168.163.128"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 networks:
   proxy-network:
