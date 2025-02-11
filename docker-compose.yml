@@ -1,0 +1,59 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.32.7
+    container_name: vaultwarden
+    restart: unless-stopped
+    ports:
+     - 8080:80 #map any custom port to use (replace 9445 not 80)
+    volumes:
+     - ./bitwarden:/data:rw
+    environment:
+#     - ROCKET_TLS={certs="/ssl/certs/certs.pem",key="/ssl/private/key.pem"}  // Environment variable is specific to the Rocket web server
+     - ADMIN_TOKEN=${ADMIN_TOKEN}
+     - WEBSOCKET_ENABLED=true
+     - SIGNUPS_ALLOWED=false
+     - SMTP_HOST=${SMTP_HOST}
+     - SMTP_FROM=${SMTP_FROM}
+     - SMTP_PORT=${SMTP_PORT}
+     - SMTP_SSL=${SMTP_SSL}
+     - SMTP_USERNAME=${SMTP_USERNAME}
+     - SMTP_PASSWORD=${SMTP_PASSWORD}
+     - DOMAIN=${DOMAIN}
+
+#uncomment below network part if you are using Nginx Proxy Manager, or you can remove the same
+#networks:
+#  default:
+#    external:
+#      name: nginx-proxy-network
+
+  web-test:
+    build: ./web-test/
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/home/administrator/Dockerfiles/web-test/
+    environment:
+      NODE_ENV: development
+
+  nginx-proxy:
+    image: nginx:alpine
+    networks:
+      - proxy-network
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://192.168.163.128"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  proxy-network:
+    external: true
+
+volumes:
+  bitwarden:
+  logs:
+  data:
