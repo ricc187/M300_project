@@ -1,30 +1,93 @@
 services:
+
+  nextcloud-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - nextcloud-data:/var/www/html
+    environment:
+      - MYSQL_PASSWORD=Pa$$w0rd
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_HOST=nextcloud-db
+      - PHP_UPLOAD_LIMIT=200G
+    networks:
+      - frontend
+      - backend
+
+  nextcloud-db:
+    image: mariadb:10.5
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - nextcloud-db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=Pa$$w0rd
+      - MYSQL_PASSWORD=Pa$$w0rd
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - OVERWRITEPROTOCOL=https
+    networks:
+      - backend
+
+  npm-app:
+    image: jc21/nginx-proxy-manager:2.9.19
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    environment:
+      - DB_MYSQL_HOST=npm-db
+      - DB_MYSQL_PORT=3306
+      - DB_MYSQL_USER=npm
+      - DB_MYSQL_PASSWORD=Pa$$w0rd
+      - DB_MYSQL_NAME=npm
+    volumes:
+      - npm-data:/data
+      - npm-ssl:/etc/letsencrypt
+    networks:
+      - frontend
+      - backend
+
+  npm-db:
+    image: jc21/mariadb-aria:latest
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=Pa$$w0rd
+      - MYSQL_DATABASE=npm
+      - MYSQL_USER=npm
+      - MYSQL_PASSWORD=Pa$$w0rd
+    volumes:
+      - npm-db:/var/lib/mysql
+    networks:
+      - backend
+
   vaultwarden:
     image: vaultwarden/server:1.32.7
     container_name: vaultwarden
     restart: unless-stopped
     ports:
-     - 8080:80 #map any custom port to use (replace 9445 not 80)
+      - 8080:80 # map any custom port to use (replace 9445, not 80)
     volumes:
-     - ./bitwarden:/data:rw
+      - ./bitwarden:/data:rw
     environment:
-#     - ROCKET_TLS={certs="/ssl/certs/certs.pem",key="/ssl/private/key.pem"}  // Environment variable is specific to the Rocket web server
-     - ADMIN_TOKEN=${ADMIN_TOKEN}
-     - WEBSOCKET_ENABLED=true
-     - SIGNUPS_ALLOWED=false
-     - SMTP_HOST=${SMTP_HOST}
-     - SMTP_FROM=${SMTP_FROM}
-     - SMTP_PORT=${SMTP_PORT}
-     - SMTP_SSL=${SMTP_SSL}
-     - SMTP_USERNAME=${SMTP_USERNAME}
-     - SMTP_PASSWORD=${SMTP_PASSWORD}
-     - DOMAIN=${DOMAIN}
-
-#uncomment below network part if you are using Nginx Proxy Manager, or you can remove the same
-#networks:
-#  default:
-#    external:
-#      name: nginx-proxy-network
+      # - ROCKET_TLS={certs="/ssl/certs/certs.pem",key="/ssl/private/key.pem"}  // Environment variable is specific to the Rocket web server
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - WEBSOCKET_ENABLED=true
+      - SIGNUPS_ALLOWED=true
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_SECURITY=starttls
+      - SMTP_USERNAME=riccardo.v1903@gmail.com
+      - SMTP_PASSWORD=xxxxxxxxxxxxxxxxx
+      - SMTP_FROM=riccardo.v1903@gmail.com
+      - DOMAIN=${DOMAIN}
+    networks:
+      - frontend
+      - backend
 
   web-test:
     build: ./web-test/
@@ -34,13 +97,21 @@ services:
       - .:/home/administrator/Dockerfiles/web-test/
     environment:
       NODE_ENV: development
+    networks:
+      - frontend
 
-
+# Networks section
 networks:
-  proxy-network:
-    external: true
+  frontend:
+  backend:
 
+# Volumes section
 volumes:
+  nextcloud-data:
+  nextcloud-db:
+  npm-data:
+  npm-ssl:
+  npm-db:
   bitwarden:
   logs:
   data:
