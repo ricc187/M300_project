@@ -1,0 +1,64 @@
+version: '3.7'
+
+services:
+
+  npm-app:
+    image: jc21/nginx-proxy-manager:2.9.19
+    restart: always
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    environment:
+      - DB_MYSQL_HOST=npm-db
+      - DB_MYSQL_PORT=3306
+      - DB_MYSQL_USER=npm
+      - DB_MYSQL_PASSWORD=Pa$$w0rd
+      - DB_MYSQL_NAME=npm
+    volumes:
+      - npm-data:/data
+      - npm-ssl:/etc/letsencrypt
+    networks:
+      - frontend
+      - backend
+
+  npm-db:
+    image: jc21/mariadb-aria:latest
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=Pa$$w0rd
+      - MYSQL_DATABASE=npm
+      - MYSQL_USER=npm
+      - MYSQL_PASSWORD=Pa$$w0rd
+    volumes:
+      - npm-db:/var/lib/mysql
+    networks:
+      - backend
+
+  web-prod:
+    build: ./web-prod/
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/home/administrator/Dockerfiles/web-prod/
+    environment:
+      NODE_ENV: development
+    networks:
+      - frontend
+
+
+networks:
+  frontend:
+  backend:
+
+
+
+# Volumes section
+volumes:
+  nextcloud-data:
+  nextcloud-db:
+  npm-data:
+  npm-ssl:
+  npm-db:
+  logs:
+  data:
